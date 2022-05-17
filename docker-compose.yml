@@ -1,0 +1,56 @@
+version: "3.2"
+services:
+
+  dns-proxy-server:
+    image: defreitas/dns-proxy-server
+    hostname: dns.mageddo
+    # name: dns-proxy-server
+    ports:
+      - "5380:5380"
+    volumes:
+      - type: bind
+        source: /opt/dns-proxy-server/conf
+        target: /app/conf
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      - type: bind
+        source: /etc/resolv.conf
+        target: /etc/resolv.conf
+
+
+  pytorch_test:
+    image: nvcr.io/nvidia/pytorch:22.02-py3
+    build: ./code/pytorch_test
+    environment:
+      JUPYTER_PORT: 8082 # CHANGE FOR EVERY REPO - must match ports values below
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN}
+      USER_ID: ${USER_ID}
+      GROUP_ID: ${GROUP_ID}
+    hostname: pytorch_test.docker
+    ports:
+      - "8082:8082" # MUST MATCH JUPYTER_PORT ABOVE
+    volumes:
+      - type: bind
+        source: ./data
+        target: /data
+      - type: bind
+        source: ./code
+        target: /code
+    # links:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: 
+                - gpu
+                - utility # nvidia-smi
+                - compute # CUDA. Required to avoid "CUDA version: N/A"
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    stdin_open: true
+    tty: true
